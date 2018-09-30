@@ -5,6 +5,7 @@ import math
 import numpy as np
 import skimage.io
 import matplotlib
+matplotlib.use("agg")
 import matplotlib.pyplot as plt
 
 import coco
@@ -77,4 +78,4 @@ results = model.detect([image])
 r = results[0]
 visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'],
                             class_names, r['scores'])
-plt.show()
+plt.savefig("demofig.png")

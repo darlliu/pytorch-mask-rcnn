@@ -13,6 +13,8 @@ import itertools
 import colorsys
 import numpy as np
 from skimage.measure import find_contours
+import matplotlib
+matplotlib.use("agg")
 import matplotlib.pyplot as plt
 if "DISPLAY" not in os.environ:
     plt.switch_backend('agg')

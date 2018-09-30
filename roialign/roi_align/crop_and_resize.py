@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from ._ext import crop_and_resize as _backend
+from roicuda import gpu_roi_forward,gpu_roi_backward
 
 
 class CropAndResizeFunction(Function):
@@ -15,21 +15,19 @@ class CropAndResizeFunction(Function):
         self.extrapolation_value = extrapolation_value
 
     def forward(self, image, boxes, box_ind):
-        crops = torch.zeros_like(image)
+        crops = None 
 
         if image.is_cuda:
-            _backend.crop_and_resize_gpu_forward(
+            crops = gpu_roi_forward(
                 image, boxes, box_ind,
-                self.extrapolation_value, self.crop_height, self.crop_width, crops)
+                self.extrapolation_value, self.crop_height, self.crop_width)
         else:
-            _backend.crop_and_resize_forward(
-                image, boxes, box_ind,
-                self.extrapolation_value, self.crop_height, self.crop_width, crops)
-
+            raise NotImplementedError("CPU version is currently not supported")
+    
         # save for backward
         self.im_size = image.size()
         self.save_for_backward(boxes, box_ind)
-
+        # print ("got crops back into python, shape {}".format(crops.shape))
         return crops
 
     def backward(self, grad_outputs):
@@ -39,13 +37,12 @@ class CropAndResizeFunction(Function):
         grad_image = torch.zeros_like(grad_outputs).resize_(*self.im_size)
 
         if grad_outputs.is_cuda:
-            _backend.crop_and_resize_gpu_backward(
+            # print ("about to backprop grads_output with shape {}, grads_mage with shape {}".format(grad_outputs.shape, grad_image.shape))
+            grad_image = gpu_roi_backward(
                 grad_outputs, boxes, box_ind, grad_image
             )
         else:
-            _backend.crop_and_resize_backward(
-                grad_outputs, boxes, box_ind, grad_image
-            )
+            raise NotImplementedError("CPU version is currently not supported")
 
         return grad_image, None, None
 
